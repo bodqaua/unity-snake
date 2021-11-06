@@ -50,7 +50,7 @@ public class CubeBehaviorController : MonoBehaviour
 
     private void GenerateRandomCubeTimeoout()
     {
-        if (this.generateTimeRange > 0)
+        if (this.generateTimeRangeCounter > 0)
         {
             this.generateTimeRangeCounter -= Time.deltaTime;
             return;
