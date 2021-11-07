@@ -1,54 +1,69 @@
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
     public float speed;
-    public Text countText;
+    public Text countText, GameOverText;
 
     private int count;
-    private int cubeCount;
 
-    private Rigidbody rb;
 
     private int currentDirection = 0;
     private Vector3[] directions = new[] { Vector3.left, Vector3.forward, Vector3.right, Vector3.back };
 
+    public delegate void GameObjectDestroyAction(Color? color);
+    public delegate void SnakeChangeDirection(Vector3 direction);
+    public delegate void GameOverAction();
+    public static event GameObjectDestroyAction OnGameObjectDestroy;
+    public static event SnakeChangeDirection OnSnakeChangeDirection;
+    public static event GameOverAction OnGameOverEvent;
+
     private string GameItemTag = "gameItem";
+    private string KillBoxTag = "killBox";
 
     void Start()
     {
-        this.rb = GetComponent<Rigidbody>();
         this.ResetCounter();
     }
 
     private void Update()
     {
-        this.cubeCount = GameObject.FindGameObjectsWithTag(this.GameItemTag).Length;
         this.UpdateCounter();
         this.ReadKeyCodes();
     }
 
     private void FixedUpdate()
     {
-        transform.Translate(this.directions[this.currentDirection] * speed * Time.deltaTime);
+        transform.Translate(this.directions[this.currentDirection] * speed * Time.smoothDeltaTime, Space.World);
     }
 
     private void OnTriggerEnter(Collider other)
     {
+
         if(CheckCollisionByTag(other, this.GameItemTag))
         {
             Destroy(other.gameObject);
             this.IncreaseCounter();
             this.UpdateCounter();
+            this.DispatchDestroyCube(other);
         }
 
-        if(CheckCollisionByTag(other, "killBox"))
+        if(CheckCollisionByTag(other, this.KillBoxTag))
         {
-            Destroy(this);
+            this.GameOver();
+            OnGameOverEvent?.Invoke();
         }
+    }
+
+    private void DispatchDestroyCube(Collider other)
+    {
+        Renderer cubeRenderer = other.GetComponent<Renderer>();
+        Renderer playerRenderer = this.GetComponent<Renderer>();
+
+        Color color = cubeRenderer.material.GetColor("_Color");
+        playerRenderer.material.SetColor("_Color", color);
+        OnGameObjectDestroy?.Invoke(color);
     }
 
     private bool CheckCollisionByTag(Collider collider, string type)
@@ -66,6 +81,13 @@ public class PlayerController : MonoBehaviour
         this.count++;
     }
 
+    private void GameOver()
+    {
+        this.GameOverText.text = "Your score: " + this.count.ToString();
+        this.countText.text = "";
+
+    }
+
 
     private void UpdateCounter()
     {
@@ -77,12 +99,14 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
             this.TurnLeft();
+            OnSnakeChangeDirection?.Invoke(this.directions[this.currentDirection]);
             return;
         }
 
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
             this.TurnRight();
+            OnSnakeChangeDirection?.Invoke(this.directions[this.currentDirection]);
             return;
         }
     }

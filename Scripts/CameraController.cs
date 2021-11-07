@@ -9,11 +9,19 @@ public class CameraController : MonoBehaviour
 
     void Start()
     {
+        if (this.player == null)
+        {
+            return;
+        }
         this.offset = transform.position - this.player.transform.position;
     }
 
     void LateUpdate()
     {
+        if (this.player == null)
+        {
+            return;
+        }
         transform.position = this.player.transform.position + this.offset;
     }
 }
